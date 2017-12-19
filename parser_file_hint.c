@@ -7,19 +7,20 @@ char res[13][20]={"begin","end","if","then","while","do",
 	"write","writeln"};
 char sign[17][10]={"+","-","*","/","(",")","=","<",">",
 	"<>","<=",">=",",",".",";",":="};
+char outtoken[200][50];
 FILE *fi;
 //関数宣言
 void nexttoken(int);  //次のトークンを読み込む関数
 int ch(char[]);    //引数の文字列との比較　同じ:1　違う:0
 int ttype();       //トークンのタイプを返す 1:予約語 2:記号
 //					    3:名前   4:整数
+int check_word(char);					    
 void exit_func();  //構文解析エラー　強制終了
 void backtoken();  //ファイルポインタを1つ前の状態に戻す
 void get_token();  
 void block(), varDecl(), constDecl(), funcDecl(),
      statement(), condition(), expression(), term(),
-     factor(),check_word();              //構文規則を指定
-
+     factor();              //構文規則を指定
 int main()
 {
 	fi=fopen("./token.txt","r");  //トークンファイルを読み込み
@@ -103,35 +104,30 @@ void statement()
 	int t_now, t_next;
 
 	nexttoken(4);
-	if(ttype()==3){
+	if(ttype()==3){ 
 		nexttoken(4);
 		if(ch(":=")==0) exit_func("Syntax Error");
 		expression();
-
-
 	}
 	else if(ch("begin")){
 		statement();
 		nexttoken(4);
 		while(ch(";")){
 			statement();
-			nexttoken();
+			nexttoken(4);
 		}
 		if(ch("end")==0) exit_func("Syntax Error");
 	}
 	else if(ch("if")){
 		condition();
-		nexttoken(5);
-		if(ch("then")) statement;
-
-
-
-
-
+		nexttoken(4);
+		if(ch("then")==0) exit_func("Syntax Error");
+		statement();
 	}
 	else if(ch("while")){
-
-
+		condition();
+		nexttoken(4);
+		if(ch("do")) statement();
 
 	}
 	else if(ch("return")){
@@ -158,26 +154,63 @@ void condition()
 
 void expression()
 {
-
-
-
+	nexttoken(6);
+	if(ch("+")||ch("-")) term();
+	else{
+		backtoken();
+		term();
+	}
+	nexttoken(6);
+	while(ch("+")||ch("-")){
+		term();
+		nexttoken(6);
+	}
+	backtoken();
 
 }
 
 void term()
 {
-
-
-
-
+	factor();
+	nexttoken(7);
+	while(ch("*")||ch("/")){
+		factor();
+		nexttoken(7);
+		}
+	backtoken();
 }
 
 void factor()
 {
-
-
-
-
+	nexttoken(8);
+	if(ttype()==3){
+		nexttoken(8);
+		if(ch("(")){
+			nexttoken(8);
+			if(ch(")")){
+				//do nothing
+			}else{	
+				backtoken();
+				expression();
+				nexttoken(8);
+				if(ch(")")){
+					//do nothing
+				}else{ 
+					while(ch(",")){
+					expression();
+					nexttoken(8);
+					}
+				}
+			}
+		}else{
+			backtoken();
+		}
+	}else if(ttype()==4){
+		//do nothing
+	}else if(ch("(")){
+		expression();
+		if(ch(")")==0) exit_func("Syntax error");
+		}
 }
 
 void nexttoken(int s)
